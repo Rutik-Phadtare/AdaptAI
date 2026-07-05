@@ -6,7 +6,7 @@ const callCohere = async (query, systemPrompt) => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'command-r',
+      model: 'command-r-08-2024',
       preamble: systemPrompt,  // Cohere calls the system prompt "preamble"
       message: query,
       max_tokens: 800,

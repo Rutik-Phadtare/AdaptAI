@@ -30,8 +30,19 @@ const synthesize = async (responses, level) => {
     }),
   });
 
+  if (!result.ok) {
+    const errText = await result.text().catch(() => '');
+    throw new Error(`Synthesizer request failed (${result.status}): ${errText}`);
+  }
+
   const data = await result.json();
-  return data.choices[0].message.content;
+  const content = data?.choices?.[0]?.message?.content;
+
+  if (!content) {
+    throw new Error('Synthesizer returned an unexpected response shape.');
+  }
+
+  return content;
 };
 
 // ─── MAIN ORCHESTRATOR ────────────────────────────────────────────────────────
@@ -45,27 +56,37 @@ const orchestrate = async (query, level = 'adult') => {
 
   // Promise.allSettled fires ALL 5 at once and waits for all to finish/fail
   // It NEVER throws — failed ones get status:'rejected', successful ones get status:'fulfilled'
-  const results = await Promise.allSettled([
-    callGroq(query, systemPrompt),
-    callGemini(query, systemPrompt),
-    callCohere(query, systemPrompt),
-    callHuggingFace(query, systemPrompt),
-    callMistral(query, systemPrompt),
-  ]);
+  const API_CALLS = [
+    { name: 'Groq',        fn: callGroq(query, systemPrompt) },
+    { name: 'Gemini',      fn: callGemini(query, systemPrompt) },
+    { name: 'Cohere',      fn: callCohere(query, systemPrompt) },
+    { name: 'HuggingFace', fn: callHuggingFace(query, systemPrompt) },
+    { name: 'Mistral',     fn: callMistral(query, systemPrompt) },
+  ];
 
-  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  const results = await Promise.allSettled(API_CALLS.map(api => api.fn));
 
-  // Separate successes and failures
-  const successful = results
-    .filter(r => r.status === 'fulfilled' && r.value?.trim().length > 20)
-    .map(r => r.value);
+  const successful = [];
+  const failed = [];
 
-  const failed = results.filter(r => r.status === 'rejected');
+results.forEach((result, i) => {
+  if (result.status === 'fulfilled' && result.value?.trim().length > 20) {
+    successful.push(result.value);
+  } else {
+    const err = result.reason;
+    // error.cause has the real network error code — ECONNRESET, ETIMEDOUT, etc.
+    const cause = err?.cause?.message || err?.cause?.code || '';
+    failed.push(
+      `${API_CALLS[i].name}: ${err?.message || 'failed'}${cause ? ` → ${cause})` : ''}`
+    );
+  }
+});
 
-  // Log result in terminal for easy debugging
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+
   console.log(`✅ ${successful.length}/5 APIs responded in ${elapsed}s`);
   if (failed.length > 0) {
-    console.log(`⚠️  ${failed.length} failed:`, failed.map(f => f.reason?.message));
+    console.log(`⚠️  Failed: ${failed.join(' | ')}`);
   }
 
   if (successful.length === 0) {
