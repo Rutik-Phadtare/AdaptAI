@@ -1,0 +1,28 @@
+@import 'tailwindcss' source(none);
+@source '../**/*.{js,ts,jsx,tsx}';
+
+@import 'tw-animate-css';
+
+@layer base {
+  html { scroll-behavior: smooth; }
+}
+
+@layer utilities {
+  .glass-effect {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #3B82F6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .glow-effect {
+    box-shadow: 0 0 40px var(--accent-glow, rgba(59, 130, 246, 0.3));
+  }
+}
