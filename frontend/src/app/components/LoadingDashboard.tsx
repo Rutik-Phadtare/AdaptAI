@@ -1,198 +1,215 @@
 import { motion, AnimatePresence } from "motion/react";
-import { Check, Loader2, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
-
-type ModelStatus = 'waiting' | 'processing' | 'complete';
-
-interface AIModel {
-  name: string;
-  status: ModelStatus;
-  logo: string;
-  color: string;
-}
-
-const MODEL_DEFS = [
-  { name: 'Groq', logo: '⚡', color: '#F97316' },
-  { name: 'Gemini', logo: '💎', color: '#3B82F6' },
-  { name: 'Cohere', logo: '🔷', color: '#8B5CF6' },
-  { name: 'HuggingFace', logo: '🤗', color: '#FBBF24' },
-  { name: 'Mistral', logo: '🌊', color: '#14B8A6' },
-];
-
-const initialModels = (): AIModel[] =>
-  MODEL_DEFS.map(m => ({ ...m, status: 'waiting' }));
+import { Check, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface LoadingDashboardProps {
   isVisible: boolean;
 }
 
+const AI_MODELS = [
+  { name: "Groq",        model: "Llama 3.3 70B",          color: "#F97316" },
+  { name: "Gemini",      model: "1.5 Flash",               color: "#3B82F6" },
+  { name: "Cohere",      model: "Command-R",               color: "#A855F7" },
+  { name: "HuggingFace", model: "Llama 3.1 8B",            color: "#14B8A6" },
+  { name: "Mistral",     model: "Mistral Small",           color: "#F59E0B" },
+];
+
+type ModelStatus = "waiting" | "processing" | "done";
+
 export function LoadingDashboard({ isVisible }: LoadingDashboardProps) {
-  const [models, setModels] = useState<AIModel[]>(initialModels());
-  const [synthesizing, setSynthesizing] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [statuses,     setStatuses]     = useState<ModelStatus[]>(["waiting","waiting","waiting","waiting","waiting"]);
+  const [synthActive,  setSynthActive]  = useState(false);
+  const [doneCount,    setDoneCount]    = useState(0);
 
   useEffect(() => {
     if (!isVisible) {
-      setModels(initialModels());
-      setSynthesizing(false);
-      setProgress(0);
+      // Reset on hide
+      setStatuses(["waiting","waiting","waiting","waiting","waiting"]);
+      setSynthActive(false);
+      setDoneCount(0);
       return;
     }
 
-    let cancelled = false;
+    // Stagger models to "processing" then "done" to simulate parallel calls
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
-    const delay = (ms: number) =>
-      new Promise<void>(resolve => {
-        const t = setTimeout(resolve, ms);
-        // cancelled check handled outside
-        void t;
-      });
+    AI_MODELS.forEach((_, i) => {
+      // Start processing
+      timers.push(setTimeout(() => {
+        setStatuses(prev => { const s = [...prev]; s[i] = "processing"; return s; });
+      }, i * 280));
 
-    const run = async () => {
-      for (let i = 0; i < MODEL_DEFS.length; i++) {
-        if (cancelled) return;
-        await delay(300);
-        setModels(prev => prev.map((m, idx) => idx === i ? { ...m, status: 'processing' } : m));
-        setProgress(Math.round(((i * 2 + 1) / (MODEL_DEFS.length * 2 + 2)) * 100));
+      // Mark done at random stagger (1.5–4.5s)
+      const doneAt = 1500 + Math.random() * 3000;
+      timers.push(setTimeout(() => {
+        setStatuses(prev => { const s = [...prev]; s[i] = "done"; return s; });
+        setDoneCount(c => c + 1);
+      }, doneAt));
+    });
 
-        await delay(700 + i * 100);
-        if (cancelled) return;
-        setModels(prev => prev.map((m, idx) => idx === i ? { ...m, status: 'complete' } : m));
-        setProgress(Math.round(((i * 2 + 2) / (MODEL_DEFS.length * 2 + 2)) * 100));
-      }
+    // Synthesis starts after most are done
+    timers.push(setTimeout(() => setSynthActive(true), 4800));
 
-      if (cancelled) return;
-      await delay(400);
-      setProgress(90);
-      setSynthesizing(true);
-
-      await delay(1200);
-      if (cancelled) return;
-      setProgress(100);
-    };
-
-    run();
-    return () => { cancelled = true; };
+    return () => timers.forEach(clearTimeout);
   }, [isVisible]);
-
-  const completedCount = models.filter(m => m.status === 'complete').length;
 
   return (
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.3 }}
-          className="max-w-5xl mx-auto mb-12"
+          key="loading-dash"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{   opacity: 0, y: 10 }}
+          transition={{ duration: 0.4 }}
+          className="max-w-4xl mx-auto mb-12"
         >
+          {/*
+            Removed: backdrop-blur-xl on outer container
+            Removed: backdrop-blur-sm on every model card (×5 = 5 GPU backdrop filters)
+            Replaced with: solid dark backgrounds
+          */}
           <div
-            className="backdrop-blur-xl rounded-3xl p-8"
+            className="rounded-3xl p-6"
             style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+              background: 'rgba(11, 14, 26, 0.97)',
+              border:     '1px solid rgba(99,102,241,0.2)',
+              boxShadow:  '0 8px 32px rgba(0,0,0,0.4)',
             }}
           >
             {/* Header */}
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-white mb-1">Processing Your Question</h3>
-              <p className="text-white/60 text-sm">Querying 5 AI models in parallel</p>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="mb-8">
-              <div className="flex justify-between text-xs text-white/40 mb-2">
-                <span>{completedCount} of {MODEL_DEFS.length} models complete</span>
-                <span>{progress}%</span>
-              </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
                 <motion.div
-                  className="h-full rounded-full"
-                  style={{ background: 'linear-gradient(90deg, #6366F1, #8B5CF6, #3B82F6)' }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.5, ease: 'easeOut' }}
-                />
-              </div>
-            </div>
-
-            {/* Models Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-              {models.map((model, index) => (
-                <motion.div
-                  key={model.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.08 }}
-                  className="relative backdrop-blur-sm rounded-2xl p-4 text-center"
-                  style={{
-                    background: model.status === 'complete' ? `${model.color}18` : 'rgba(255, 255, 255, 0.03)',
-                    border: `1px solid ${model.status === 'complete' ? model.color + '60' : 'rgba(255, 255, 255, 0.1)'}`,
-                    boxShadow: model.status === 'complete' ? `0 0 24px ${model.color}35` : 'none',
-                    transition: 'all 0.4s ease'
-                  }}
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                  style={{ willChange: 'transform' }}
                 >
-                  <div className="text-4xl mb-2">{model.logo}</div>
-                  <h4 className="text-sm font-medium text-white mb-2">{model.name}</h4>
-
-                  <div className="flex items-center justify-center gap-1.5">
-                    {model.status === 'waiting' && (
-                      <span className="text-xs text-white/30">Waiting</span>
-                    )}
-                    {model.status === 'processing' && (
-                      <>
-                        <Loader2 className="w-3 h-3 text-white/60 animate-spin" />
-                        <span className="text-xs text-white/60">Working</span>
-                      </>
-                    )}
-                    {model.status === 'complete' && (
-                      <>
-                        <Check className="w-3 h-3" style={{ color: model.color }} />
-                        <span className="text-xs font-medium" style={{ color: model.color }}>Done</span>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Processing pulse ring */}
-                  {model.status === 'processing' && (
-                    <motion.div
-                      className="absolute inset-0 rounded-2xl"
-                      animate={{ opacity: [0.4, 0, 0.4] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                      style={{ border: `1px solid ${model.color}`, pointerEvents: 'none' }}
-                    />
-                  )}
+                  <Sparkles className="w-5 h-5 text-indigo-400" />
                 </motion.div>
-              ))}
+                <div>
+                  <h3 className="font-semibold text-white text-sm">Querying AI models</h3>
+                  <p className="text-xs text-white/40 mt-0.5">
+                    {doneCount}/5 responded · synthesizing best answer
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-1">
+                {[0,1,2].map(i => (
+                  <motion.div
+                    key={i}
+                    className="w-1.5 h-1.5 rounded-full bg-indigo-400"
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ repeat: Infinity, duration: 1.2, delay: i * 0.2, ease: "easeInOut" }}
+                    // opacity-only animation = GPU composited, zero layout cost
+                  />
+                ))}
+              </div>
             </div>
 
-            {/* Synthesis Animation */}
-            <AnimatePresence>
-              {synthesizing && (
-                <motion.div
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center"
-                >
-                  <div
-                    className="inline-flex items-center gap-3 px-6 py-4 rounded-xl"
+            {/* Model status cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 mb-6">
+              {AI_MODELS.map((model, i) => {
+                const status = statuses[i];
+                const isDone = status === "done";
+                const isProc = status === "processing";
+
+                return (
+                  <motion.div
+                    key={model.name}
+                    className="rounded-xl p-3 text-center"
                     style={{
-                      background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #3B82F6 100%)',
-                      boxShadow: '0 0 40px rgba(99, 102, 241, 0.5)'
+                      // Solid dark — removed backdrop-blur-sm
+                      background: isDone
+                        ? `${model.color}12`
+                        : isProc
+                          ? 'rgba(255,255,255,0.06)'
+                          : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${isDone
+                        ? `${model.color}35`
+                        : isProc
+                          ? 'rgba(255,255,255,0.12)'
+                          : 'rgba(255,255,255,0.06)'}`,
+                      transition: 'background 0.3s ease, border-color 0.3s ease',
                     }}
                   >
+                    {/* Status dot */}
+                    <div className="flex justify-center mb-2">
+                      {isDone ? (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                          className="w-5 h-5 rounded-full flex items-center justify-center"
+                          style={{ background: model.color }}
+                        >
+                          <Check className="w-3 h-3 text-white" />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          className="w-5 h-5 rounded-full border-2"
+                          style={{
+                            borderColor: isProc ? model.color : 'rgba(255,255,255,0.15)',
+                            borderTopColor: isProc ? 'transparent' : undefined,
+                          }}
+                          animate={ isProc ? { rotate: 360 } : {} }
+                          transition={ isProc
+                            ? { repeat: Infinity, duration: 0.9, ease: "linear" }
+                            : {}
+                          }
+                          // rotate-only animation = GPU composited
+                        />
+                      )}
+                    </div>
+
+                    <p className="text-xs font-semibold text-white/80">{model.name}</p>
+                    <p className="text-[10px] text-white/35 mt-0.5 leading-tight">{model.model}</p>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* Synthesis row */}
+            <div
+              className="rounded-xl px-4 py-3 flex items-center gap-3"
+              style={{
+                background:  synthActive ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.03)',
+                border:      `1px solid ${synthActive ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.07)'}`,
+                transition:  'background 0.4s ease, border-color 0.4s ease',
+              }}
+            >
+              <motion.div
+                animate={synthActive ? { rotate: 360 } : {}}
+                transition={ synthActive
+                  ? { repeat: Infinity, duration: 1.5, ease: "linear" }
+                  : {}
+                }
+                style={{ willChange: 'transform' }}
+              >
+                <Sparkles className={`w-4 h-4 ${synthActive ? 'text-indigo-400' : 'text-white/20'}`} />
+              </motion.div>
+              <div className="flex-1">
+                <p className={`text-sm font-medium ${synthActive ? 'text-white/85' : 'text-white/25'}`}>
+                  Synthesizing best answer…
+                </p>
+                <p className={`text-xs ${synthActive ? 'text-white/40' : 'text-white/18'}`}>
+                  Picking the clearest points from each model
+                </p>
+              </div>
+              {synthActive && (
+                <div className="flex gap-1">
+                  {[0,1,2].map(i => (
                     <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                    >
-                      <Sparkles className="w-5 h-5 text-white" />
-                    </motion.div>
-                    <span className="text-white font-medium">Synthesizing perfect answer for you...</span>
-                  </div>
-                </motion.div>
+                      key={i}
+                      className="w-1 h-1 rounded-full bg-indigo-400"
+                      animate={{ opacity: [0.2, 1, 0.2], scale: [0.8, 1.2, 0.8] }}
+                      transition={{ repeat: Infinity, duration: 1, delay: i * 0.18 }}
+                      // opacity + scale = GPU composited only
+                    />
+                  ))}
+                </div>
               )}
-            </AnimatePresence>
+            </div>
           </div>
         </motion.div>
       )}

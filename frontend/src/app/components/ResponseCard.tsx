@@ -1,176 +1,39 @@
 import { motion, AnimatePresence } from "motion/react";
-import { Check, Copy, Share2, Sparkles, RotateCcw } from "lucide-react";
+import { Copy, Share2, RotateCcw, Check, Sparkles } from "lucide-react";
 import { useState } from "react";
-import { Badge } from "./ui/badge";
 import type { KnowledgeLevel } from "./LevelSelector";
 
 interface ResponseCardProps {
-  isVisible: boolean;
-  level: KnowledgeLevel;
-  query: string;
-  response: string;
-  onTryAnother?: () => void;
+  isVisible:    boolean;
+  level:        KnowledgeLevel;
+  query:        string;
+  response:     string;
+  onTryAnother: () => void;
 }
 
-const levelConfig = {
-  kid: { color: '#F97316', label: 'Kid', emoji: '🧒' },
-  teen: { color: '#A855F7', label: 'Teen', emoji: '🎧' },
-  adult: { color: '#3B82F6', label: 'Adult', emoji: '👤' },
-  professional: { color: '#14B8A6', label: 'Professional', emoji: '💼' },
-  expert: { color: '#F59E0B', label: 'Expert', emoji: '🎓' }
+const LEVEL_CFG: Record<KnowledgeLevel, { emoji: string; label: string; color: string; border: string }> = {
+  kid:          { emoji: "🧒", label: "Kid Level",          color: "#F97316", border: "rgba(249,115,22,0.3)"  },
+  teen:         { emoji: "🎧", label: "Teen Level",         color: "#A855F7", border: "rgba(168,85,247,0.3)"  },
+  adult:        { emoji: "👤", label: "Adult Level",        color: "#3B82F6", border: "rgba(59,130,246,0.3)"  },
+  professional: { emoji: "💼", label: "Professional Level", color: "#14B8A6", border: "rgba(20,184,166,0.3)"  },
+  expert:       { emoji: "🎓", label: "Expert Level",       color: "#F59E0B", border: "rgba(245,158,11,0.3)"  },
 };
-
-// Simple markdown renderer — handles headings, bold, italic, code blocks, inline code, lists
-function renderMarkdown(text: string, accentColor: string): React.ReactNode[] {
-  const lines = text.split('\n');
-  const nodes: React.ReactNode[] = [];
-  let i = 0;
-
-  while (i < lines.length) {
-    const line = lines[i];
-
-    // Fenced code block
-    if (line.startsWith('```')) {
-      const lang = line.slice(3).trim();
-      const codeLines: string[] = [];
-      i++;
-      while (i < lines.length && !lines[i].startsWith('```')) {
-        codeLines.push(lines[i]);
-        i++;
-      }
-      nodes.push(
-        <div key={`code-${i}`} className="my-4 rounded-xl overflow-hidden">
-          {lang && (
-            <div className="px-4 py-2 text-xs font-mono text-white/50 border-b border-white/10"
-              style={{ background: 'rgba(0,0,0,0.4)' }}>
-              {lang}
-            </div>
-          )}
-          <pre className="p-4 text-sm font-mono text-white/90 overflow-x-auto"
-            style={{ background: 'rgba(0,0,0,0.35)', lineHeight: 1.6 }}>
-            <code>{codeLines.join('\n')}</code>
-          </pre>
-        </div>
-      );
-      i++; // skip closing ```
-      continue;
-    }
-
-    // H1
-    if (line.startsWith('# ')) {
-      nodes.push(<h1 key={i} className="text-2xl font-bold text-white mt-6 mb-3">{inlineMarkdown(line.slice(2), accentColor)}</h1>);
-      i++; continue;
-    }
-
-    // H2
-    if (line.startsWith('## ')) {
-      nodes.push(<h2 key={i} className="text-xl font-bold text-white mt-5 mb-2">{inlineMarkdown(line.slice(3), accentColor)}</h2>);
-      i++; continue;
-    }
-
-    // H3
-    if (line.startsWith('### ')) {
-      nodes.push(<h3 key={i} className="text-base font-bold mt-4 mb-2" style={{ color: accentColor }}>{inlineMarkdown(line.slice(4), accentColor)}</h3>);
-      i++; continue;
-    }
-
-    // Unordered list
-    if (line.match(/^[-*] /)) {
-      const items: string[] = [];
-      while (i < lines.length && lines[i].match(/^[-*] /)) {
-        items.push(lines[i].slice(2));
-        i++;
-      }
-      nodes.push(
-        <ul key={`ul-${i}`} className="my-3 space-y-1.5 ml-2">
-          {items.map((item, idx) => (
-            <li key={idx} className="flex items-start gap-2 text-white/85">
-              <span className="mt-2 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: accentColor }} />
-              <span>{inlineMarkdown(item, accentColor)}</span>
-            </li>
-          ))}
-        </ul>
-      );
-      continue;
-    }
-
-    // Ordered list
-    if (line.match(/^\d+\. /)) {
-      const items: string[] = [];
-      let num = 1;
-      while (i < lines.length && lines[i].match(/^\d+\. /)) {
-        items.push(lines[i].replace(/^\d+\. /, ''));
-        i++;
-      }
-      nodes.push(
-        <ol key={`ol-${i}`} className="my-3 space-y-1.5 ml-2">
-          {items.map((item, idx) => (
-            <li key={idx} className="flex items-start gap-3 text-white/85">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold mt-0.5"
-                style={{ background: `${accentColor}30`, color: accentColor }}>
-                {idx + 1}
-              </span>
-              <span>{inlineMarkdown(item, accentColor)}</span>
-            </li>
-          ))}
-        </ol>
-      );
-      continue;
-    }
-
-    // Empty line — spacing
-    if (line.trim() === '') {
-      nodes.push(<div key={i} className="h-2" />);
-      i++; continue;
-    }
-
-    // Regular paragraph
-    nodes.push(
-      <p key={i} className="text-white/85 leading-relaxed my-1">
-        {inlineMarkdown(line, accentColor)}
-      </p>
-    );
-    i++;
-  }
-
-  return nodes;
-}
-
-function inlineMarkdown(text: string, accentColor: string): React.ReactNode {
-  // Split on bold, italic, and inline code
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} className="font-semibold text-white">{part.slice(2, -2)}</strong>;
-    }
-    if (part.startsWith('*') && part.endsWith('*')) {
-      return <em key={i} className="italic text-white/90">{part.slice(1, -1)}</em>;
-    }
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return (
-        <code key={i} className="px-1.5 py-0.5 rounded text-xs font-mono"
-          style={{ background: `${accentColor}20`, color: accentColor }}>
-          {part.slice(1, -1)}
-        </code>
-      );
-    }
-    return part;
-  });
-}
 
 export function ResponseCard({ isVisible, level, query, response, onTryAnother }: ResponseCardProps) {
   const [copied, setCopied] = useState(false);
-  const config = levelConfig[level];
+  const cfg = LEVEL_CFG[level];
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(response);
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(response);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (navigator.share) {
-      navigator.share({ title: 'AdaptAI Response', text: response });
+      await navigator.share({ title: "AdaptAI Response", text: response });
+    } else {
+      handleCopy();
     }
   };
 
@@ -178,112 +41,115 @@ export function ResponseCard({ isVisible, level, query, response, onTryAnother }
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          key="response-card"
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
+          exit={{   opacity: 0, y: 16 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="max-w-5xl mx-auto"
+          className="max-w-4xl mx-auto mb-16"
         >
+          {/*
+            Removed: backdrop-blur-xl on outer card
+            Removed: blur-3xl ambient glow div behind the card
+            Removed: backdrop-blur-sm on the badge
+            Replaced with: solid dark background + box-shadow border glow
+          */}
           <div
-            className="relative backdrop-blur-xl rounded-3xl p-8 md:p-12"
+            className="relative rounded-3xl overflow-hidden"
             style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: `1px solid ${config.color}40`,
-              boxShadow: `0 0 60px ${config.color}30, 0 8px 32px rgba(0, 0, 0, 0.3)`
+              background:  'rgba(11, 14, 26, 0.97)',
+              border:      `1px solid ${cfg.border}`,
+              boxShadow:   `0 0 40px ${cfg.border}, 0 16px 48px rgba(0,0,0,0.4)`,
             }}
           >
-            {/* Ambient glow */}
+            {/* Top coloured accent line */}
             <div
-              className="absolute inset-0 rounded-3xl opacity-20 blur-3xl pointer-events-none"
-              style={{ background: `radial-gradient(circle at 50% 0%, ${config.color}, transparent 70%)` }}
+              className="h-0.5 w-full"
+              style={{ background: `linear-gradient(90deg, transparent, ${cfg.color}, transparent)` }}
             />
 
-            {/* Header */}
-            <div className="relative flex items-start justify-between mb-8">
-              <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div
-                    className="px-4 py-2 rounded-full flex items-center gap-2"
-                    style={{ background: `${config.color}20`, border: `1px solid ${config.color}40` }}
-                  >
-                    <span className="text-xl">{config.emoji}</span>
-                    <span className="text-sm font-medium text-white">{config.label} Level</span>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className="px-3 py-1 backdrop-blur-sm"
-                    style={{ background: 'rgba(255, 255, 255, 0.05)', borderColor: 'rgba(255, 255, 255, 0.2)', color: 'white' }}
-                  >
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    AI-Synthesized
-                  </Badge>
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-2">{query}</h3>
-              </div>
-            </div>
-
-            {/* Response Content — rendered markdown */}
-            <div className="relative mb-8">
-              <div className="text-base leading-relaxed">
-                {renderMarkdown(response, config.color)}
-              </div>
-            </div>
-
-            {/* Model attribution pills */}
-            <div className="relative flex flex-wrap gap-2 mb-6">
-              {['Groq', 'Gemini', 'Cohere', 'HuggingFace', 'Mistral'].map((model) => (
+            {/* Card header */}
+            <div
+              className="flex items-center justify-between px-6 py-4"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div className="flex items-center gap-3">
+                {/* Level badge — solid, no blur */}
                 <div
-                  key={model}
-                  className="px-3 py-1 rounded-full text-xs font-medium"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+                  style={{
+                    background: `${cfg.color}18`,
+                    border:     `1px solid ${cfg.color}35`,
+                  }}
                 >
-                  ✓ {model}
+                  <span className="text-base leading-none">{cfg.emoji}</span>
+                  <span className="text-xs font-semibold" style={{ color: cfg.color }}>
+                    {cfg.label}
+                  </span>
                 </div>
-              ))}
+                {/* Synthesised-from badge */}
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
+                  style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.18)' }}>
+                  <Sparkles className="w-3 h-3 text-indigo-400" />
+                  <span className="text-xs text-white/45">Synthesized from 5 AIs</span>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                <button onClick={handleCopy}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-white/55 hover:text-white transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span className="hidden sm:inline">{copied ? "Copied!" : "Copy"}</span>
+                </button>
+                <button onClick={handleShare}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-white/55 hover:text-white transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Share</span>
+                </button>
+              </div>
             </div>
 
-            {/* Footer Actions */}
-            <div className="relative flex items-center justify-between pt-6 border-t border-white/10">
-              <div className="flex items-center gap-2 text-sm text-white/60">
-                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                <span>Generated by 5 AI models</span>
+            {/* Query echo */}
+            <div className="px-6 pt-5 pb-3">
+              <p className="text-sm text-white/35 font-medium mb-1">Your question</p>
+              <p className="text-white/70 font-medium">{query}</p>
+            </div>
+
+            {/* Divider */}
+            <div className="mx-6 h-px" style={{ background: 'rgba(255,255,255,0.05)' }} />
+
+            {/* Response body */}
+            <div className="px-6 py-5">
+              <p className="text-sm text-white/35 font-medium mb-3">AdaptAI answer</p>
+              <div
+                className="text-white/85 leading-relaxed whitespace-pre-wrap"
+                style={{ fontSize: level === 'kid' ? '1.05rem' : '0.95rem' }}
+              >
+                {response}
               </div>
+            </div>
 
-              <div className="flex items-center gap-2">
-                <motion.button
-                  onClick={handleCopy}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium text-white transition-all"
-                  style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}
-                >
-                  {copied ? <><Check className="w-4 h-4" />Copied!</> : <><Copy className="w-4 h-4" />Copy</>}
-                </motion.button>
-
-                <motion.button
-                  onClick={handleShare}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium text-white transition-all"
-                  style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}
-                >
-                  <Share2 className="w-4 h-4" />
-                  Share
-                </motion.button>
-
-                {onTryAnother && (
-                  <motion.button
-                    onClick={onTryAnother}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium text-white transition-all"
-                    style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Try Another
-                  </motion.button>
-                )}
-              </div>
+            {/* Footer */}
+            <div
+              className="px-6 py-4 flex items-center justify-between"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+            >
+              <p className="text-xs text-white/25">
+                Generated by AdaptAI • {new Date().toLocaleTimeString()}
+              </p>
+              <motion.button
+                onClick={onTryAnother}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-colors"
+                style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.25)' }}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Ask another
+              </motion.button>
             </div>
           </div>
         </motion.div>

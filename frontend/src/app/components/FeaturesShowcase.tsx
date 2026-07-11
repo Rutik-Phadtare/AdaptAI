@@ -3,128 +3,140 @@ import { Zap, Brain, Shield, Sparkles } from "lucide-react";
 
 const features = [
   {
-    icon: Zap,
-    title: "Lightning Fast",
-    description: "Parallel processing across 5 AI models delivers results in under 3 seconds",
-    gradient: "from-[#F97316] to-[#FB923C]"
+    icon:        <Zap className="w-6 h-6" />,
+    title:       "5 AI Models in Parallel",
+    description: "Groq, Gemini, Cohere, HuggingFace and Mistral fire simultaneously. Fastest one wins, all contribute to the final answer.",
+    color:       "#F59E0B",
+    gradient:    "linear-gradient(135deg, #F59E0B, #FBBF24)",
   },
   {
-    icon: Brain,
-    title: "Multi-Model Intelligence",
-    description: "Groq, Gemini, Cohere, HuggingFace, and Mistral work together for accuracy",
-    gradient: "from-[#8B5CF6] to-[#A855F7]"
+    icon:        <Brain className="w-6 h-6" />,
+    title:       "Intelligent Synthesis",
+    description: "Responses are merged by a dedicated synthesis pass that picks the clearest, most accurate points from each model.",
+    color:       "#8B5CF6",
+    gradient:    "linear-gradient(135deg, #8B5CF6, #A78BFA)",
   },
   {
-    icon: Shield,
-    title: "Verified Answers",
-    description: "Cross-validation reduces hallucinations by 67% compared to single models",
-    gradient: "from-[#3B82F6] to-[#60A5FA]"
+    icon:        <Shield className="w-6 h-6" />,
+    title:       "Fault Tolerant",
+    description: "If one API rate-limits or fails, the rest carry it. You always get an answer even when individual models go down.",
+    color:       "#14B8A6",
+    gradient:    "linear-gradient(135deg, #14B8A6, #2DD4BF)",
   },
   {
-    icon: Sparkles,
-    title: "Adaptive Learning",
-    description: "Responses tailored to your exact knowledge level with intelligent synthesis",
-    gradient: "from-[#14B8A6] to-[#2DD4BF]"
-  }
+    icon:        <Sparkles className="w-6 h-6" />,
+    title:       "Level-Aware Prompts",
+    description: "Every API call is wrapped in a carefully crafted system prompt matched to your knowledge level before it fires.",
+    color:       "#6366F1",
+    gradient:    "linear-gradient(135deg, #6366F1, #818CF8)",
+  },
+];
+
+const stats = [
+  { value: "5",    label: "Free AI APIs"          },
+  { value: "5",    label: "Knowledge levels"       },
+  { value: "~6s",  label: "Avg response time"      },
+  { value: "100%", label: "Open source"            },
 ];
 
 export function FeaturesShowcase() {
   return (
-    <div className="max-w-6xl mx-auto mb-24 mt-16">
+    <div className="max-w-7xl mx-auto mb-24">
+      {/* Heading */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 1.2 }}
-        className="text-center mb-12"
+        transition={{ duration: 0.7 }}
+        className="text-center mb-16"
       >
-        <h2 className="text-4xl font-bold text-white mb-4">
-          Why AdaptAI?
+        <div
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
+          style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}
+        >
+          <Sparkles className="w-4 h-4 text-[#6366F1]" />
+          <span className="text-sm text-white/85">How AdaptAI works</span>
+        </div>
+        <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
+          Built different.{" "}
+          <span className="bg-gradient-to-r from-[#6366F1] via-[#8B5CF6] to-[#3B82F6] bg-clip-text text-transparent">
+            Works better.
+          </span>
         </h2>
-        <p className="text-xl text-white/60">
-          The future of personalized AI is here
+        <p className="text-xl text-white/55 max-w-2xl mx-auto">
+          Five AI models. One synthesized answer. Zero one-size-fits-all responses.
         </p>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {features.map((feature, index) => (
+      {/* Feature cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-16">
+        {features.map((feature, i) => (
           <motion.div
             key={feature.title}
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1.3 + index * 0.1 }}
-            whileHover={{ y: -8 }}
-            className="relative group cursor-pointer"
+            transition={{ duration: 0.6, delay: i * 0.1 }}
+            whileHover={{ y: -4 }}
+            className="relative group"
+            style={{ willChange: 'transform' }}
           >
+            {/*
+              Removed: backdrop-blur-xl (was on every card)
+              Removed: hover glow div with filter:blur(20px)
+              Replaced with: box-shadow hover via CSS transition
+            */}
             <div
-              className="h-full backdrop-blur-xl rounded-2xl p-6 transition-all duration-300"
+              className="h-full rounded-2xl p-7"
               style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+                background:  'rgba(14, 17, 32, 0.9)',
+                border:      '1px solid rgba(255,255,255,0.08)',
+                boxShadow:   '0 4px 20px rgba(0,0,0,0.25)',
+                transition:  'border-color 0.25s ease, box-shadow 0.25s ease',
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget as HTMLDivElement;
+                el.style.borderColor = `${feature.color}40`;
+                el.style.boxShadow   = `0 0 28px ${feature.color}20, 0 8px 24px rgba(0,0,0,0.3)`;
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget as HTMLDivElement;
+                el.style.borderColor = 'rgba(255,255,255,0.08)';
+                el.style.boxShadow   = '0 4px 20px rgba(0,0,0,0.25)';
               }}
             >
               {/* Icon */}
-              <div 
-                className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-gradient-to-br ${feature.gradient}`}
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 text-white"
+                style={{ background: feature.gradient, boxShadow: `0 4px 14px ${feature.color}40` }}
               >
-                <feature.icon className="w-6 h-6 text-white" />
+                {feature.icon}
               </div>
-
-              {/* Content */}
-              <h3 className="text-lg font-bold text-white mb-2">
-                {feature.title}
-              </h3>
-              <p className="text-sm text-white/60 leading-relaxed">
-                {feature.description}
-              </p>
-
-              {/* Hover glow effect */}
-              <div 
-                className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-300 bg-gradient-to-br ${feature.gradient}`}
-                style={{ zIndex: -1, filter: 'blur(20px)' }}
-              />
+              <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
+              <p className="text-white/55 leading-relaxed">{feature.description}</p>
             </div>
           </motion.div>
         ))}
       </div>
 
-      {/* Stats Bar */}
+      {/* Stats bar */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 1.8 }}
-        className="mt-16 backdrop-blur-xl rounded-2xl p-8"
-        style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.1)'
-        }}
+        transition={{ duration: 0.7, delay: 0.4 }}
+        className="grid grid-cols-2 md:grid-cols-4 gap-4"
       >
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          <div className="text-center">
-            <div className="text-4xl font-bold bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent mb-2">
-              5
-            </div>
-            <div className="text-sm text-white/60">AI Models</div>
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="text-center p-5 rounded-2xl"
+            style={{
+              background: 'rgba(99,102,241,0.07)',
+              border:     '1px solid rgba(99,102,241,0.15)',
+            }}
+          >
+            <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
+            <div className="text-sm text-white/45">{stat.label}</div>
           </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] bg-clip-text text-transparent mb-2">
-              2.8s
-            </div>
-            <div className="text-sm text-white/60">Avg Response</div>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold bg-gradient-to-r from-[#3B82F6] to-[#14B8A6] bg-clip-text text-transparent mb-2">
-              67%
-            </div>
-            <div className="text-sm text-white/60">Less Errors</div>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold bg-gradient-to-r from-[#14B8A6] to-[#F59E0B] bg-clip-text text-transparent mb-2">
-              43%
-            </div>
-            <div className="text-sm text-white/60">More Accurate</div>
-          </div>
-        </div>
+        ))}
       </motion.div>
     </div>
   );

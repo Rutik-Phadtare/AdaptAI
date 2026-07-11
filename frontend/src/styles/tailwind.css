@@ -8,12 +8,7 @@
 }
 
 @layer utilities {
-  .glass-effect {
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
+  /* Removed .glass-effect — backdrop-filter removed app-wide for GPU performance */
 
   .text-gradient {
     background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #3B82F6 100%);
@@ -26,3 +21,6 @@
     box-shadow: 0 0 40px var(--accent-glow, rgba(59, 130, 246, 0.3));
   }
 }
+
+/* Removed: orb animation keyframes — AmbientOrbs is now fully static */
+/* Removed: glass-effect utility — backdrop-filter removed everywhere */
